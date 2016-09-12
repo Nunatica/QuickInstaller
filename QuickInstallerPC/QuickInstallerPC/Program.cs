@@ -48,6 +48,13 @@ namespace QuickInstallerPC
 
             Console.WriteLine("Found vpk: " + vpk.Substring(vpk.LastIndexOf(Path.DirectorySeparatorChar) + 1));
 
+            if (new FileInfo(vpk).Length < FileSizeThreshold)
+            {
+                File.Copy(vpk, path_mp4 + Path.DirectorySeparatorChar + "qinst_" + inst_count.ToString("X2") + ".mp4");
+                ++inst_count;
+                return;
+            }
+
             if (Directory.Exists(path_work))
             {
                 Console.WriteLine("Removing temporary folder...");
@@ -75,8 +82,11 @@ namespace QuickInstallerPC
             meta_record.Add("#" + appid);
             Console.WriteLine("App Id: " + appid);
 
+            int lastcount = meta_record.Count;
             Console.WriteLine("Processing...");
             ProcessEachFile(path_work);
+            if (lastcount == meta_record.Count)
+                meta_record.RemoveAt(lastcount - 1);
 
             Console.WriteLine("Compressing...");
             ZipFile.CreateFromDirectory(path_work, path_mp4 + Path.DirectorySeparatorChar + "qinst_" + inst_count.ToString("X2") + ".mp4",
