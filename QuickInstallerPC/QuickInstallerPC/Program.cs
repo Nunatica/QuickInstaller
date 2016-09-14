@@ -12,6 +12,9 @@ namespace QuickInstallerPC
     {
         const int FileSizeThreshold = 20 * 1024 * 1024;
 
+        static byte[] header_buf = new byte[4];
+        static byte[] header_dummy = new byte[] { 0, 0, 0, 0 };
+
         static string path_work = null;
         static string path_mp4 = null;
         static string path_vpk = null;
@@ -22,6 +25,14 @@ namespace QuickInstallerPC
 
         static List<string> meta_record = new List<string>();
 
+        static string ConvertBinaryToHex(byte[] arr)
+        {
+            var sb = new StringBuilder();
+            foreach (var t in arr)
+                sb.AppendFormat("{0:X2}", t);
+            return sb.ToString();
+        }
+
         static void ProcessEachFile(string dir)
         {
             foreach (var d in Directory.GetDirectories(dir))            
@@ -30,14 +41,23 @@ namespace QuickInstallerPC
             foreach (var f in Directory.GetFiles(dir))
             {
                 var info = new FileInfo(f);
+
                 if(info.Length > FileSizeThreshold)
                 {
+                    using (var fs = new FileStream(f, FileMode.Open))
+                    {
+                        fs.Seek(0, SeekOrigin.Begin);
+                        fs.Read(header_buf, 0, 4);
+                        fs.Seek(0, SeekOrigin.Begin);
+                        fs.Write(header_dummy, 0, 4);
+                    }
+
                     //Console.WriteLine("Processing: " + f.Substring(path_vpk.Length + 1));
                     var key = "qd_" + data_count.ToString("X4") + ".mp4";
                     var p = path_mp4 + Path.DirectorySeparatorChar + key;
                     File.Move(f, p);
-                    var destpath = key + " ux0:app/" + app_id + "/" + f.Substring(path_work.Length + 1).Replace('\\', '/');
-                    meta_record.Add(destpath);
+                    var record = "ux0:app/" + app_id + "/" + f.Substring(path_work.Length + 1).Replace('\\', '/') + " " + ConvertBinaryToHex(header_buf);
+                    meta_record.Add(record);
                     ++data_count;
                 }
             }
