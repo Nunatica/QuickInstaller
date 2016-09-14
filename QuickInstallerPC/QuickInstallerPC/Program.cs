@@ -10,12 +10,12 @@ namespace QuickInstallerPC
 {
     static class Program
     {
-        //50MB
-        const int FileSizeThreshold = 50 * 1024 * 1024;
+        const int FileSizeThreshold = 20 * 1024 * 1024;
 
         static string path_work = null;
         static string path_mp4 = null;
         static string path_vpk = null;
+        static string app_id = null;
 
         static int data_count = 0;
         static int inst_count = 0;
@@ -29,13 +29,15 @@ namespace QuickInstallerPC
 
             foreach (var f in Directory.GetFiles(dir))
             {
-                //Console.WriteLine("Processing: " + f.Substring(path_vpk.Length + 1));
                 var info = new FileInfo(f);
-                if(info.Length > FileSizeThreshold) {
+                if(info.Length > FileSizeThreshold)
+                {
+                    //Console.WriteLine("Processing: " + f.Substring(path_vpk.Length + 1));
                     var key = "qd_" + data_count.ToString("X4") + ".mp4";
                     var p = path_mp4 + Path.DirectorySeparatorChar + key;
                     File.Move(f, p);
-                    meta_record.Add(key + " " + f.Substring(path_work.Length + 1));
+                    var destpath = key + " ux0:app/" + app_id + "/" + f.Substring(path_work.Length + 1).Replace('\\', '/');
+                    meta_record.Add(destpath);
                     ++data_count;
                 }
             }
@@ -59,9 +61,11 @@ namespace QuickInstallerPC
             {
                 Console.WriteLine("Removing temporary folder...");
                 Directory.Delete(path_work, true);
-                Thread.Sleep(4000);
+                while(Directory.Exists(path_work)) { Thread.Sleep(100);  }
             }
             Directory.CreateDirectory(path_work);
+            while (!Directory.Exists(path_work)) { Thread.Sleep(100); }
+
             Thread.Sleep(1000);
 
             Console.WriteLine("Extracting...");
@@ -78,15 +82,11 @@ namespace QuickInstallerPC
                 }
             }
 
-            var appid = Encoding.ASCII.GetString(info, 0, 9);
-            meta_record.Add("#" + appid);
-            Console.WriteLine("App Id: " + appid);
-
-            int lastcount = meta_record.Count;
+            app_id = Encoding.ASCII.GetString(info, 0, 9);
+            Console.WriteLine("App Id: " + app_id);
+            
             Console.WriteLine("Processing...");
             ProcessEachFile(path_work);
-            if (lastcount == meta_record.Count)
-                meta_record.RemoveAt(lastcount - 1);
 
             Console.WriteLine("Compressing...");
             ZipFile.CreateFromDirectory(path_work, path_mp4 + Path.DirectorySeparatorChar + "qinst_" + inst_count.ToString("X2") + ".mp4",
@@ -103,14 +103,20 @@ namespace QuickInstallerPC
 
             if (!Directory.Exists(path_vpk))
             {
-                Console.WriteLine("directory vpk is not found.");
+                Console.WriteLine("Directory vpk is not found.");
                 return;
             }
 
-            if(Directory.Exists(path_mp4)) Directory.Delete(path_mp4, true);
-            Directory.CreateDirectory(path_mp4);
+            if (Directory.Exists(path_mp4))
+            {
+                Directory.Delete(path_mp4, true);
+                while (Directory.Exists(path_mp4)) { Thread.Sleep(100); }
+            }
 
-            foreach(var t in Directory.GetFiles(path_vpk))
+            Directory.CreateDirectory(path_mp4);
+            while (!Directory.Exists(path_mp4)) { Thread.Sleep(100); }
+
+            foreach (var t in Directory.GetFiles(path_vpk))
                 Process(t);
 
             using (var fs = new FileStream(path_mp4 + Path.DirectorySeparatorChar + "qmeta.mp4", FileMode.CreateNew))
@@ -125,7 +131,6 @@ namespace QuickInstallerPC
             }
 
             Console.WriteLine("Done.");
-            Console.ReadLine();
         }
     }
 }
