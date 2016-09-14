@@ -250,3 +250,9 @@ paket-files/
 # JetBrains Rider
 .idea/
 *.sln.iml
+
+# Makefile objects
+*.o
+*.elf
+*.velf
+*.bin

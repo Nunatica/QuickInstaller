@@ -30,9 +30,6 @@
 
 #define TRANSFER_SIZE 64 * 1024
 
-#define HOME_PATH "home"
-#define DIR_UP ".."
-
 enum FileTypes {
 	FILE_TYPE_UNKNOWN,
 	FILE_TYPE_BMP,
