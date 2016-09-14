@@ -16,7 +16,11 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "main.h"
+#include <string.h>
+
+#include <psp2/io/fcntl.h>
+
+#include "global.h"
 #include "archive.h"
 #include "file.h"
 #include "utils.h"
@@ -376,7 +380,7 @@ int archiveOpen(char *file) {
 		entry->is_folder = 0;
 		entry->name_length = file_info.size_filename;
 		entry->size = file_info.uncompressed_size;
-		sceRtcSetDosTime(&entry->time, file_info.dosDate);
+		//sceRtcSetDosTime(&entry->time, file_info.dosDate);
 
 		// Get pos
 		unzGetFilePos64(uf, (unz64_file_pos *)&entry->reserved);

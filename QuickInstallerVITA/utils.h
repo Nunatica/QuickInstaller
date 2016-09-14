@@ -19,7 +19,11 @@
 #ifndef __UTILS_H__
 #define __UTILS_H__
 
-#include "main.h"
+#include <psp2/ctrl.h>
+
+#define align_mem(addr, align) (((addr) + ((align) - 1)) & ~((align) - 1))
+#define lerp(value, from_max, to_max) ((((value*10) * (to_max*10))/(from_max*10))/10)
+//#define abs(x) ((x) < 0 ? (-x) : (x))
 
 #define ALIGN_CENTER(a, b) ((a - b) / 2)
 #define ALIGN_LEFT(x, w) (x - w)
@@ -46,12 +50,6 @@ enum {
 
 extern SceCtrlData pad;
 extern uint32_t old_buttons, current_buttons, pressed_buttons, hold_buttons, hold2_buttons, released_buttons;
-
-void startDrawing(vita2d_texture *bg);
-void endDrawing();
-
-void errorDialog(int error);
-void infoDialog(char *msg, ...);
 
 void initPowerTickThread();
 void powerLock();

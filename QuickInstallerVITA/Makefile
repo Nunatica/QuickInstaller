@@ -1,17 +1,13 @@
 TITLE_ID = QUICKINST
 TARGET   = quickinstaller
-OBJS     = main.o init.o io_process.o package_installer.o archive.o file.o text.o sfo.o \
-		   minizip/unzip.o minizip/ioapi.o bm.o utils.o sha1.o \
-		   libmad/bit.o libmad/decoder.o libmad/fixed.o libmad/frame.o \
-		   libmad/huffman.o libmad/layer12.o libmad/layer3.o  \
-		   libmad/stream.o libmad/synth.o libmad/timer.o
+OBJS     = main.o draw.o font.o bm.o utils.o file.o archive.o sha1.o \
+		   minizip/zip.o minizip/unzip.o minizip/ioapi.o
 
-LIBS = -lftpvita -lvita2d -lpng -ljpeg -lz -lm -lc \
+LIBS = -lvita2d -lpng -ljpeg -lz -lm -lc \
 	   -lSceAppMgr_stub -lSceAppUtil_stub -lSceCommonDialog_stub \
 	   -lSceCtrl_stub -lSceDisplay_stub -lSceGxm_stub -lSceIme_stub \
 	   -lSceHttp_stub -lSceKernel_stub -lSceNet_stub -lSceNetCtl_stub \
-	   -lSceSsl_stub -lSceSysmodule_stub -lScePower_stub -lScePgf_stub libpromoter/libScePromoterUtil_stub.a \
-	   -lSceAudio_stub -lSceAudiodec_stub -lSceTouch_stub
+	   -lSceSsl_stub -lSceSysmodule_stub -lScePower_stub -lScePgf_stub libpromoter/libScePromoterUtil_stub.a
 
 PREFIX   = arm-vita-eabi
 CC       = $(PREFIX)-gcc
@@ -35,7 +31,7 @@ eboot.bin: $(TARGET).velf
 	vita-make-fself $< $@
 
 %.velf: %.elf
-	vita-elf-create $< $@ libpromoter/promoterutil.json
+	vita-elf-create $< $@ $(VITASDK)/share/db.json
 
 $(TARGET).elf: $(OBJS)
 	$(CC) $(CFLAGS) $^ $(LIBS) -o $@

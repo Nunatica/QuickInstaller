@@ -21,6 +21,8 @@
 
 #include "file.h"
 
+#include <psp2/io/stat.h>
+
 #define ARCHIVE_FD 0x12345678
 
 int fileListGetArchiveEntries(FileList *list, char *path);

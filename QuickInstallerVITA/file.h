@@ -19,6 +19,10 @@
 #ifndef __FILE_H__
 #define __FILE_H__
 
+#include <stdint.h>
+
+#include <psp2/types.h>
+
 #define MAX_PATH_LENGTH 1024
 #define MAX_NAME_LENGTH 256
 #define MAX_SHORT_NAME_LENGTH 64

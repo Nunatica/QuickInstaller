@@ -16,7 +16,15 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "main.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include <psp2/io/fcntl.h>
+#include <psp2/io/dirent.h>
+#include <psp2/kernel/threadmgr.h>
+
+#include "global.h"
 #include "archive.h"
 #include "file.h"
 #include "utils.h"
@@ -829,10 +837,6 @@ int fileListGetDirectoryEntries(FileList *list, char *path) {
 }
 
 int fileListGetEntries(FileList *list, char *path) {
-	if (isInArchive()) {
-		return fileListGetArchiveEntries(list, path);
-	}
-
 	if (strcasecmp(path, HOME_PATH) == 0) {
 		return fileListGetMountPointEntries(list);
 	}

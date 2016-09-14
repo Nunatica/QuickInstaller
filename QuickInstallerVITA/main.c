@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 #include <malloc.h>
 #include <stdint.h>
 #include <sys/time.h>
@@ -10,8 +11,8 @@
 #include <psp2/gxm.h>
 #include <psp2/types.h>
 #include <psp2/moduleinfo.h>
-#include <psp2/kernel/processmgr.h>
 #include <psp2/kernel/threadmgr.h>
+#include <psp2/kernel/processmgr.h>
 
 #include "draw.h"
 #include "file.h"
@@ -26,9 +27,9 @@ static int textbuf_index = 0;
 static char textbuf_data[TEXTBUF_ROWS][TEXTBUF_COLS];
 
 static char* textbuf_meta;
-static char* list_data[0x100];
+static char* list_data[0x10000];
 static char* list_inst[0x100];
-static char* dest_data[0x100];
+static char* dest_data[0x10000];
 static int count_data = 0;
 static int count_inst = 0;
 static int progress_pkg = -1;
@@ -53,15 +54,15 @@ static void load_meta(FileListEntry* f) {
 	char* end = textbuf_meta + len;
 
 	int cnt = 0;
-	while (true) {
+	while (1) {
 		int u = 0;
-		dest[cnt] = calloc(0x100, 1);	
-		while(true) {
+		dest_data[cnt] = calloc(0x100, 1);	
+		while(1) {
 			if (p >= end) return;
 			char c = *p++;
 			if (c == '\r') continue;
 			if (c == '\n') break;			
-			dest[cnt][u++] = c;
+			dest_data[cnt][u++] = c;
 		}
 		++cnt;
 	}
@@ -86,7 +87,7 @@ int process_install_pkg(const char* path) {
 static void main_worker_impl() {
 	FileList p;
 
-	if (fileListGetEntries(&p, "ux0:/video")) {
+	if (fileListGetEntries(&p, "ux0:video")) {
 		print_textbuf("%s", "Failed to get list.");
 		return;
 	}
@@ -113,14 +114,14 @@ static void main_worker_impl() {
 			load_data(f);
 		}
 		h = h->next;
-	} while (h != files.tail);
+	} while (h != p.tail);
 
 	progress_pkg = 0;
 	progress_pkg_max = count_inst;
 	for (int u = 0; u < count_inst; ++u) {
 		progress_pkg_cur = u;
 		if (process_install_pkg(list_inst[u]) == 0) {
-			print_textbuf("%s %s", "Installed. " list_inst[u]);
+			print_textbuf("%s %s", "Installed. ", list_inst[u]);
 		} else {
 			print_textbuf("%s %s", "Failed to install package.", list_inst[u]);
 			return;
@@ -130,7 +131,7 @@ static void main_worker_impl() {
 
 	for (int u = 0; u < count_data; ++u) {
 		if (movePath(list_data[u], dest_data[u], MOVE_REPLACE, NULL) == 0) {
-			print_textbuf("%s %s", "Moved. " list_data[u]);
+			print_textbuf("%s %s", "Moved. ", list_data[u]);
 		} else {
 			print_textbuf("%s %s", "Failed to move file.", list_data[u]);
 			return;
@@ -146,7 +147,7 @@ static int main_worker(SceSize args, void* p) {
 }
 
 static void begin_working_thread() {
-	sceKernelCreateThread("mythread", main_worker, 0x10000100, 0x10000, 0, 0, NULL)
+	sceKernelCreateThread("mythread", main_worker, 0x10000100, 0x10000, 0, 0, NULL);
 }
 
 static void rendering_loop() {
@@ -170,8 +171,9 @@ static void rendering_loop() {
 		}
 
 		if (display_screen > HW_BUTTON_THRESHOLD) {
+			font_draw_string(10, 30, RGBA8(0xFF, 0xFF, 0x00, 0xFF), "quick installer");
 			if (progress_pkg >= 0) {
-				font_draw_stringf(10, 10 + u * 20, RGBA8(0xFF, 0xFF, 0xFF, 0xFF), "progress_pkg: %d%, %d of %d", progress_pkg, progress_pkg_cur, progress_pkg_max);
+				font_draw_stringf(10, 30, RGBA8(0xFF, 0xFF, 0x00, 0x00), "progress_pkg: %d%, %d of %d", progress_pkg, progress_pkg_cur, progress_pkg_max);
 			}
 			for (int u = 0; u < TEXTBUF_ROWS; ++u) {
 				int row = (u + textbuf_index) % TEXTBUF_ROWS;
