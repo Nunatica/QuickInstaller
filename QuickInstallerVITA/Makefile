@@ -1,5 +1,5 @@
 TITLE_ID = QUICKINST
-TARGET   = quickinstaller
+TARGET   = QuickInstaller
 OBJS     = main.o draw.o font.o bm.o utils.o file.o archive.o sha1.o sfo.o \
 		   package_installer.o \
 		   minizip/zip.o minizip/unzip.o minizip/ioapi.o
@@ -44,6 +44,9 @@ $(TARGET).elf: $(OBJS)
 	$(PREFIX)-ld -r -b binary -o $@ $^
 %.o: %.bin
 	$(PREFIX)-ld -r -b binary -o $@ $^
+
+sfo:
+	vita-mksfoex -d PARENTAL_LEVEL=1 -s APP_VER=01.00 -s TITLE_ID=$(TITLE_ID) "$(TARGET)" param.sfo
 
 clean:
 	@rm -rf $(TARGET).vpk $(TARGET).velf $(TARGET).elf $(OBJS) \
