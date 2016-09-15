@@ -63,7 +63,47 @@ namespace QuickInstallerPC
             }
         }
 
-        static void Process(string vpk)
+        static void ProcessWork()
+        {
+            byte[] info = null;
+            using (var fs = new FileStream(path_work + Path.DirectorySeparatorChar + "sce_sys" + Path.DirectorySeparatorChar + "param.sfo", FileMode.Open))
+            {
+                using (var buf = new MemoryStream())
+                {
+                    fs.Seek(-20, SeekOrigin.End);
+                    fs.CopyTo(buf);
+                    info = buf.ToArray();
+                }
+            }
+
+            app_id = Encoding.ASCII.GetString(info, 0, 9);
+            Console.WriteLine("App Id: " + app_id);
+
+            Console.WriteLine("Processing...");
+            ProcessEachFile(path_work);
+
+            Console.WriteLine("Compressing...");
+            ZipUtil.CreateFromDirectory(path_work, path_mp4 + Path.DirectorySeparatorChar + "qinst_" + inst_count.ToString("X2") + ".mp4");
+
+            ++inst_count;
+        }
+
+        static void ProcessDirectory(string dir)
+        {
+            if (Directory.Exists(path_work))
+            {
+                Console.WriteLine("Removing temporary folder...");
+                Directory.Delete(path_work, true);
+                while (Directory.Exists(path_work)) { Thread.Sleep(100); }
+            }
+
+            new DirectoryInfo(dir).MoveTo(path_work);
+            while (!Directory.Exists(path_work)) { Thread.Sleep(100); }
+
+            ProcessWork();
+        }
+
+        static void ProcessVPK(string vpk)
         {
             var ext = vpk.Substring(vpk.Length - 3).ToLower();
             if (ext != "vpk") return;
@@ -83,35 +123,14 @@ namespace QuickInstallerPC
                 Directory.Delete(path_work, true);
                 while(Directory.Exists(path_work)) { Thread.Sleep(100);  }
             }
+
             Directory.CreateDirectory(path_work);
             while (!Directory.Exists(path_work)) { Thread.Sleep(100); }
-
-            Thread.Sleep(1000);
 
             Console.WriteLine("Extracting...");
             ZipUtil.ExtractToDirectory(vpk, path_work);
 
-            byte[] info = null;
-            using (var fs = new FileStream(path_work + Path.DirectorySeparatorChar + "sce_sys" + Path.DirectorySeparatorChar + "param.sfo", FileMode.Open))
-            {
-                using (var buf = new MemoryStream())
-                {
-                    fs.Seek(-20, SeekOrigin.End);
-                    fs.CopyTo(buf);
-                    info = buf.ToArray();
-                }
-            }
-
-            app_id = Encoding.ASCII.GetString(info, 0, 9);
-            Console.WriteLine("App Id: " + app_id);
-            
-            Console.WriteLine("Processing...");
-            ProcessEachFile(path_work);
-
-            Console.WriteLine("Compressing...");
-            ZipUtil.CreateFromDirectory(path_work, path_mp4 + Path.DirectorySeparatorChar + "qinst_" + inst_count.ToString("X2") + ".mp4");
-                
-            ++inst_count;
+            ProcessWork();
         }
 
         static void Main(string[] args)
@@ -136,7 +155,9 @@ namespace QuickInstallerPC
             while (!Directory.Exists(path_mp4)) { Thread.Sleep(100); }
 
             foreach (var t in Directory.GetFiles(path_vpk))
-                Process(t);
+                ProcessVPK(t);
+            foreach (var t in Directory.GetDirectories(path_vpk))
+                ProcessDirectory(t);
 
             using (var fs = new FileStream(path_mp4 + Path.DirectorySeparatorChar + "qmeta.mp4", FileMode.CreateNew))
             {
