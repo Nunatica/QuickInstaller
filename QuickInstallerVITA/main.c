@@ -41,7 +41,7 @@ typedef struct {
 	char buf[PATHBUF_LEN];
 } path_info;
 
-static uint32_t progress_ratio = 100;
+FileProcessParam progress_param;
 
 static int textbuf_index = 0;
 static char textbuf_data[TEXTBUF_COLS * TEXTBUF_ROWS] = {0};
@@ -199,10 +199,11 @@ static void main_worker_impl() {
 					}
 				} else if(!memcmp(n->name, "qinst_", 6)) {
 					print_textbuf("Installing %s...", path);					
-					if(installPackage(path)) {
+					if(installPackage(path, &progress_param)) {
 						print_textbuf("Failed to install package.");
 						return;
 					}
+					*progress_param.value = progress_param.max;
 					removePath(path, NULL);
 				} else if(!memcmp(n->name, "qmeta.mp4", 9)) {
 					print_textbuf("Loading meta from %s...", path);
@@ -269,8 +270,9 @@ static void rendering_loop() {
 
 		font_draw_string(10, 10, RGBA8(0x80, 0xFF, 0xFF, 0xFF), "Quick Installer");
 
-		if(progress_ratio < 100) {
-			font_draw_stringf(900, 10, RGBA8(0xFF, 0x80, 0x00, 0xFF), "%2d%%", progress_ratio);
+		uint64_t prog = (*progress_param.value * 100) / progress_param.max;
+		if(prog < 100) {
+			font_draw_stringf(900, 10, RGBA8(0xFF, 0x80, 0x00, 0xFF), "%2d%%", prog);
 		}
 
 		for (int u = 0; u < TEXTBUF_ROWS; ++u) {
@@ -287,6 +289,12 @@ static void rendering_loop() {
 }
 
 int main() {
+	progress_param.value = malloc(sizeof(uint64_t));
+	*progress_param.value = 1;
+	progress_param.max = 1;
+	progress_param.SetProgress = NULL;
+	progress_param.cancelHandler = NULL;
+
 	init_video();
 	begin_working_thread();
 	rendering_loop();

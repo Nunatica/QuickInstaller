@@ -25,9 +25,11 @@
 #define PACKAGE_DIR PACKAGE_PARENT "/pkg"
 #define HEAD_BIN PACKAGE_DIR "/sce_sys/package/head.bin"
 
+#include "archive.h"
+
 int promote(char *path);
 int makeHeadBin();
 
-int installPackage(char *file);
+int installPackage(char *file, FileProcessParam* param);
 
 #endif

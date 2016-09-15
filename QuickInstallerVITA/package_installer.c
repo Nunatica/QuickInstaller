@@ -279,7 +279,7 @@ int makeHeadBin() {
 	return 0;
 }
 
-int installPackage(char *file) {
+int installPackage(char* file, FileProcessParam* param) {
 	int res;
 
 	// Recursively clean up package_temp directory
@@ -297,7 +297,17 @@ int installPackage(char *file) {
 	addEndSlash(src_path);
 
 	// Extract process
-	res = extractArchivePath(src_path, PACKAGE_DIR "/", NULL);
+	if(param) {
+		uint64_t size;
+		uint32_t folders;
+		uint32_t files;			
+		getArchivePathInfo(src_path, &size, &folders, &files);
+
+		uint32_t count = size + folders;		
+		param->max = count > 0 ? count : 1;		
+	}
+
+	res = extractArchivePath(src_path, PACKAGE_DIR "/", param);
 	if (res < 0)
 		return res;
 
