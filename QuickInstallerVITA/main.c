@@ -14,9 +14,10 @@
 #include <psp2/kernel/threadmgr.h>
 #include <psp2/kernel/processmgr.h>
 
+#include "global.h"
 #include "draw.h"
 #include "file.h"
-#include "global.h"
+#include "package_installer.h"
 
 #define TEXTBUF_ROWS 24
 #define TEXTBUF_COLS 0x100
@@ -114,10 +115,7 @@ static void load_data(FileListEntry* f) {
 }
 #endif
 
-int process_install_pkg(const char* path) {
-	return -1;
-}
-
+#if 0
 static void main_worker_impl() {
 	print_textbuf("main_worker_impl");
 	FileList p, q;	
@@ -206,7 +204,7 @@ static void main_worker_impl() {
 
 	for (int u = 0; u < count_data; ++u) {
 		if (movePath(list_data[u], dest_data[u], MOVE_REPLACE, NULL) == 0) {
-			print_textbuf("Moved %s", list_data[u]);
+			print_textbuf("Moved. %s", list_data[u]);
 		} else {
 			print_textbuf("Failed to move file. %s", list_data[u]);
 			return;
@@ -215,6 +213,17 @@ static void main_worker_impl() {
 #endif
 
 	print_textbuf("Done.");
+}
+#endif
+
+static void main_worker_impl() {
+	print_textbuf("main_worker_impl");
+	print_textbuf("Installing VPK...");
+	int result = installPackage("ux0:homebrew/mgba.vpk");
+	if(result)
+		print_textbuf("Failed with code: %d.", result);
+	else
+		print_textbuf("Done.");
 }
 
 static int main_worker(SceSize args, void* p) {

@@ -1,6 +1,7 @@
 TITLE_ID = QUICKINST
 TARGET   = quickinstaller
-OBJS     = main.o draw.o font.o bm.o utils.o file.o archive.o sha1.o \
+OBJS     = main.o draw.o font.o bm.o utils.o file.o archive.o sha1.o sfo.o \
+		   package_installer.o \
 		   minizip/zip.o minizip/unzip.o minizip/ioapi.o
 
 LIBS = -lvita2d -lpng -ljpeg -lz -lm -lc \
@@ -31,7 +32,8 @@ eboot.bin: $(TARGET).velf
 	vita-make-fself $< $@
 
 %.velf: %.elf
-	vita-elf-create $< $@ $(VITASDK)/share/db.json
+#	vita-elf-create $< $@ $(VITASDK)/share/db.json
+	vita-elf-create $< $@ localdb.json
 
 $(TARGET).elf: $(OBJS)
 	$(CC) $(CFLAGS) $^ $(LIBS) -o $@

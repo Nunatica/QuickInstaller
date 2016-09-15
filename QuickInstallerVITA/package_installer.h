@@ -25,14 +25,9 @@
 #define PACKAGE_DIR PACKAGE_PARENT "/pkg"
 #define HEAD_BIN PACKAGE_DIR "/sce_sys/package/head.bin"
 
-typedef struct {
-	char *file;
-} InstallArguments;
-
 int promote(char *path);
 int makeHeadBin();
 
 int installPackage(char *file);
-int install_thread(SceSize args_size, InstallArguments *args);
 
 #endif

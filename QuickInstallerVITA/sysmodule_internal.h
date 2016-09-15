@@ -12,6 +12,7 @@
 #ifndef _PSP2_SYSMODULE_INTERNAL_H_
 #define _PSP2_SYSMODULE_INTERNAL_H_
 
+#include <stdint.h>
 #include <psp2/types.h>
 
 #ifdef __cplusplus
@@ -26,6 +27,7 @@ enum {
 int sceSysmoduleLoadModuleInternal(SceUInt32 id);
 int sceSysmoduleUnloadModuleInternal(SceUInt32 id);
 int sceSysmoduleIsLoadedInternal(SceUInt32 id);
+int sceSysmoduleLoadModuleInternalWithArg(uint32_t, size_t, uint32_t*, uint32_t*);
 
 #ifdef __cplusplus
 }
