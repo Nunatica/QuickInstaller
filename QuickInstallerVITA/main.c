@@ -20,8 +20,6 @@
 #include "file.h"
 #include "package_installer.h"
 
-#define REMOVE_INSTALLER_FILES 1
-
 #define TEXTBUF_ROWS 24
 #define TEXTBUF_COLS 0x100
 
@@ -34,16 +32,22 @@ do { \
 } while(0)
 
 typedef struct {
-	char* src;
-	char* dst;
+	char src[PATHBUF_LEN];
+	char dst[PATHBUF_LEN];
 	char header[4];
 } data_info;
+
+typedef struct {
+	char buf[PATHBUF_LEN];
+} path_info;
+
+static uint32_t progress_ratio = 100;
 
 static int textbuf_index = 0;
 static char textbuf_data[TEXTBUF_COLS * TEXTBUF_ROWS] = {0};
 
 static data_info* data_info_arr;
-static int data_info_count = 0;
+static int data_info_cnt = 0;
 
 static uint8_t hexchar2uint(char c) {
 	if(c >= '0' && c <= '9') return c - '0';
@@ -61,58 +65,57 @@ static uint32_t read_data_index(char* filename) {
 }
 
 static int load_meta(char* path) {
-	char* buf = calloc(0x1000000, 1);
-
-	int len = ReadFile(path, buf, 0x1000000);
-	char* p = buf;
-	char* end = buf + len;
-
+	char* buf = NULL;
+	int len = allocateReadFile(path, (void**)&buf);
 	//print_textbuf("load_meta: %s, %d", path, len);
+	if(len < 0) return -1;
 
 	int cnt = 0;
-	while (1) {
-		int u = 0;
-		int step = 0;
-		data_info_arr[cnt].dst = calloc(PATHBUF_LEN, 1);	
-		char header_buf[8] = {0};
+	int step = 0;
+	int v = 0;
+	char header_buf[8] = {0};
+	for(int u = 0; u < len; ++u) {
+		char c = buf[u];
 
-		while(1) {
-			if (p >= end) {
-				free(buf);
-				return cnt;
+		switch(c) {
+		case '\r':
+			continue;
+		case '\n':
+			for(v = 0; v < 4; ++v) {
+				data_info_arr[cnt].header[v] = 
+					(hexchar2uint(header_buf[v << 1]) << 4) |
+					hexchar2uint(header_buf[(v << 1) + 1])
+				;
 			}
-			char c = *p++;
-			if (c >= 0x80) continue;
-			if (c == '\r') continue;
-			if (c == '\n') break;
-			if (c == ' ') {
-				//data_info_arr[cnt].dst_length = u;
-				data_info_arr[cnt].dst[u] = 0; //null terminate.
-				step = 1;
-				u = 0;
-				continue;
-			}
-
+			step = 0;
+			v = 0;
+			++cnt;
+			break;
+		case ' ':
+			data_info_arr[cnt].dst[v] = 0; //null terminate.
+			step = 1;
+			v = 0;
+			break;
+		default:
+			if((uint32_t)c >= 0x80) continue;
 			if(step == 0)
-				data_info_arr[cnt].dst[u++] = c;
-			else if(step == 1)
-				header_buf[u++] = c;
+				data_info_arr[cnt].dst[v++] = c;
+			else
+				header_buf[v++] = c;			
+			break;
 		}
-
-		for(u = 0; u < 4; ++u)
-			data_info_arr[cnt].header[u] = (hexchar2uint(header_buf[u << 1]) << 4) | hexchar2uint(header_buf[(u << 1) + 1]);
-
-		//print_textbuf("# %s %02x%02x%02x%02x", data_info_arr[cnt].path, 
-		//	data_info_arr[cnt].header[0], data_info_arr[cnt].header[1], data_info_arr[cnt].header[2], data_info_arr[cnt].header[3]);
-
-		++cnt;
 	}
+
+	//for(int u = 0; u < cnt; ++u)
+	//	print_textbuf("#%s %x", data_info_arr[u].dst, *(uint32_t*)data_info_arr[u].header);
+
+	free(buf);
+	return cnt;
 }
 
 static int process_data(char* path, uint32_t index) {
-	if(data_info_arr[index].src) return -1; //duplicated entry.
+	if(data_info_arr[index].src[0]) return -1; //duplicated entry.
 
-	data_info_arr[index].src = calloc(PATHBUF_LEN, 1);
 	strcpy(data_info_arr[index].src, path);
 	return 0;
 }
@@ -147,7 +150,7 @@ static int resolve_meta(int index) {
 }
 
 static void main_worker_impl() {
-	data_info_arr = calloc(0x10000, sizeof(data_info));
+	data_info_arr = calloc(0x1000, sizeof(data_info));
 
 	FileList p, q;	
 	memset(&p, 0, sizeof(FileList));
@@ -189,27 +192,27 @@ static void main_worker_impl() {
 				//print_textbuf("file: %s", path);
 
 				if(!memcmp(n->name, "qd_", 3)) {
-					//print_textbuf("Found data file: %s", path);
+					//print_textbuf("Found data file: %s", path);					
 					if(process_data(path, read_data_index(n->name))) {						
 						print_textbuf("Duplicated file is found.");
 						return;
 					}
 				} else if(!memcmp(n->name, "qinst_", 6)) {
-					print_textbuf("Installing %s...", path);
+					print_textbuf("Installing %s...", path);					
 					if(installPackage(path)) {
 						print_textbuf("Failed to install package.");
 						return;
 					}
-#if REMOVE_INSTALLER_FILES
 					removePath(path, NULL);
-#endif
 				} else if(!memcmp(n->name, "qmeta.mp4", 9)) {
 					print_textbuf("Loading meta from %s...", path);
-					data_info_count = load_meta(path);
-#if REMOVE_INSTALLER_FILES
+					data_info_cnt = load_meta(path);
+					if(data_info_cnt < 0) {
+						print_textbuf("Failed to load meta.");
+						return;
+					}
 					removePath(path, NULL);
-#endif
-				}				
+				}
 				
 				if(n == q.tail) break;
 				n = n->next;
@@ -220,8 +223,8 @@ static void main_worker_impl() {
 		m = m->next;
 	}
 				
-	print_textbuf("Resolving meta...");	
-	for(int u = 0; u < data_info_count; ++u) {
+	print_textbuf("Resolving meta...");
+	for(int u = 0; u < data_info_cnt; ++u) {
 		if(resolve_meta(u)) {
 			print_textbuf("Failed to resolve %s.", data_info_arr[u].src);
 			return;
@@ -264,11 +267,18 @@ static void rendering_loop() {
 		/* Read controls and touchscreen */
 		sceCtrlPeekBufferPositive(0, &pad, 1);
 
-		font_draw_stringf(10, 10, RGBA8(0xFF, 0xFF, 0x00, 0xFF), "quick installer");
+		font_draw_string(10, 10, RGBA8(0x80, 0xFF, 0xFF, 0xFF), "Quick Installer");
+
+		if(progress_ratio < 100) {
+			font_draw_stringf(900, 10, RGBA8(0xFF, 0x80, 0x00, 0xFF), "%2d%%", progress_ratio);
+		}
 
 		for (int u = 0; u < TEXTBUF_ROWS; ++u) {
 			int row = (u + textbuf_index) % TEXTBUF_ROWS;
-			font_draw_string(10, 56 + u * 20, RGBA8(0xFF, 0xFF, 0xFF, 0xFF), textbuf_data + row * TEXTBUF_COLS);
+			if(u == (TEXTBUF_ROWS - 1))
+				font_draw_string(10, 56 + u * 20, RGBA8(0xFF, 0xFF, 0x80, 0xFF), textbuf_data + row * TEXTBUF_COLS);
+			else
+				font_draw_string(10, 56 + u * 20, RGBA8(0xFF, 0xFF, 0xFF, 0xFF), textbuf_data + row * TEXTBUF_COLS);
 		}
 
 		swap_buffers();
