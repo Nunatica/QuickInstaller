@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.IO;
-using System.IO.Compression;
 using System.Threading;
+using LocalLib;
 
 namespace QuickInstallerPC
 {
@@ -89,7 +89,7 @@ namespace QuickInstallerPC
             Thread.Sleep(1000);
 
             Console.WriteLine("Extracting...");
-            ZipFile.ExtractToDirectory(vpk, path_work, Encoding.UTF8);
+            ZipUtil.ExtractToDirectory(vpk, path_work);
 
             byte[] info = null;
             using (var fs = new FileStream(path_work + Path.DirectorySeparatorChar + "sce_sys" + Path.DirectorySeparatorChar + "param.sfo", FileMode.Open))
@@ -109,8 +109,7 @@ namespace QuickInstallerPC
             ProcessEachFile(path_work);
 
             Console.WriteLine("Compressing...");
-            ZipFile.CreateFromDirectory(path_work, path_mp4 + Path.DirectorySeparatorChar + "qinst_" + inst_count.ToString("X2") + ".mp4",
-                CompressionLevel.NoCompression, false, Encoding.UTF8);
+            ZipUtil.CreateFromDirectory(path_work, path_mp4 + Path.DirectorySeparatorChar + "qinst_" + inst_count.ToString("X2") + ".mp4");
                 
             ++inst_count;
         }
@@ -141,7 +140,7 @@ namespace QuickInstallerPC
 
             using (var fs = new FileStream(path_mp4 + Path.DirectorySeparatorChar + "qmeta.mp4", FileMode.CreateNew))
             {
-                using (var writer = new StreamWriter(fs, Encoding.UTF8))
+                using (var writer = new StreamWriter(fs, new UTF8Encoding(false)))
                 {
                     foreach (var t in meta_record)
                     {

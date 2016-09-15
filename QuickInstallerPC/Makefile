@@ -8,7 +8,7 @@ SHELL := /bin/bash
 CSC := mcs
 SRC_FILES := $(wildcard QuickInstallerPC/*.cs)
 LIB_FILES := $(wildcard Libs/*.dll)
-LIB_FILES += System System.Core System.IO.Compression System.IO.Compression.FileSystem
+LIB_FILES += System System.Core
 LIB_FILES_LINK := $(subst $(TK_SPACE),$(TK_COMMA),$(LIB_FILES))
 
 all: $(SRC_FILES)
