@@ -11,6 +11,7 @@
 #include <psp2/gxm.h>
 #include <psp2/types.h>
 #include <psp2/moduleinfo.h>
+#include <psp2/io/fcntl.h>
 #include <psp2/kernel/threadmgr.h>
 #include <psp2/kernel/processmgr.h>
 
@@ -19,8 +20,12 @@
 #include "file.h"
 #include "package_installer.h"
 
+#define REMOVE_INSTALLER_FILES 1
+
 #define TEXTBUF_ROWS 24
 #define TEXTBUF_COLS 0x100
+
+#define PATHBUF_LEN 0x100
 
 #define print_textbuf(__format__, ...) \
 do { \
@@ -29,99 +34,124 @@ do { \
 } while(0)
 
 typedef struct {
-	char* path;
+	char* src;
+	char* dst;
 	char header[4];
-	int path_length;
 } data_info;
 
 static int textbuf_index = 0;
 static char textbuf_data[TEXTBUF_COLS * TEXTBUF_ROWS] = {0};
 
-static data_info* dest_data;
-static int count_data = 0;
-static int count_inst = 0;
-static int progress_pkg = -1;
-static int progress_pkg_cur = 0;
-static int progress_pkg_max = 0;
+static data_info* data_info_arr;
+static int data_info_count = 0;
 
-static uint8_t hexchar2uint(char c)
-{
+static uint8_t hexchar2uint(char c) {
 	if(c >= '0' && c <= '9') return c - '0';
 	if(c >= 'A' && c <= 'F') return c - 'A' + 10;
 	if(c >= 'a' && c <= 'f') return c - 'a' + 10;
 	return 0xFF;
 }
 
-static void load_meta(char* path) {
+static uint32_t read_data_index(char* filename) {
+	return
+		(hexchar2uint(filename[3]) << 24) |
+		(hexchar2uint(filename[4]) << 16) |
+		(hexchar2uint(filename[5]) << 8) |
+		(hexchar2uint(filename[6]) << 0);
+}
 
-	dest_data = calloc(0x10000, sizeof(data_info));
+static int load_meta(char* path) {
 	char* buf = calloc(0x1000000, 1);
 
 	int len = ReadFile(path, buf, 0x1000000);
 	char* p = buf;
 	char* end = buf + len;
 
-	print_textbuf("load_meta: %s, %d", path, len);
+	//print_textbuf("load_meta: %s, %d", path, len);
 
 	int cnt = 0;
 	while (1) {
 		int u = 0;
 		int step = 0;
-		dest_data[cnt].path = calloc(0x100, 1);	
+		data_info_arr[cnt].dst = calloc(PATHBUF_LEN, 1);	
 		char header_buf[8] = {0};
 
 		while(1) {
 			if (p >= end) {
 				free(buf);
-				return;
+				return cnt;
 			}
 			char c = *p++;
+			if (c >= 0x80) continue;
 			if (c == '\r') continue;
 			if (c == '\n') break;
 			if (c == ' ') {
-				dest_data[cnt].path_length = u;
-				dest_data[cnt].path[u] = 0; //null terminate.
+				//data_info_arr[cnt].dst_length = u;
+				data_info_arr[cnt].dst[u] = 0; //null terminate.
 				step = 1;
 				u = 0;
 				continue;
 			}
 
 			if(step == 0)
-				dest_data[cnt].path[u++] = c;
+				data_info_arr[cnt].dst[u++] = c;
 			else if(step == 1)
 				header_buf[u++] = c;
 		}
 
 		for(u = 0; u < 4; ++u)
-			dest_data[cnt].header[u] = (hexchar2uint(header_buf[u << 1]) << 4) | hexchar2uint(header_buf[(u << 1) + 1]);
+			data_info_arr[cnt].header[u] = (hexchar2uint(header_buf[u << 1]) << 4) | hexchar2uint(header_buf[(u << 1) + 1]);
 
-		print_textbuf("# %s %02x%02x%02x%02x", dest_data[cnt].path,
-			dest_data[cnt].header[0], dest_data[cnt].header[1], dest_data[cnt].header[2], dest_data[cnt].header[3]);
+		//print_textbuf("# %s %02x%02x%02x%02x", data_info_arr[cnt].path, 
+		//	data_info_arr[cnt].header[0], data_info_arr[cnt].header[1], data_info_arr[cnt].header[2], data_info_arr[cnt].header[3]);
+
 		++cnt;
 	}
 }
 
-#if 0
-static void load_inst(FileListEntry* f) {
-	list_inst[count_inst] = malloc(f->name_length + 1);
-	memcpy(list_inst[count_inst], f->name, f->name_length + 1);
-	++count_inst;
+static int process_data(char* path, uint32_t index) {
+	if(data_info_arr[index].src) return -1; //duplicated entry.
+
+	data_info_arr[index].src = calloc(PATHBUF_LEN, 1);
+	strcpy(data_info_arr[index].src, path);
+	return 0;
 }
 
-static void load_data(FileListEntry* f) {
-	list_data[count_data] = malloc(f->name_length + 1);
-	memcpy(list_data[count_data], f->name, f->name_length + 1);
-	++count_data;
-}
-#endif
+static int overwrite_file(char *file, void *buf, int size) {
+	SceUID fd = sceIoOpen(file, SCE_O_WRONLY, 0777);
+	if (fd < 0) return -1;
 
-#if 0
+	sceIoLseek(fd, 0, SEEK_SET);
+	int written = sceIoWrite(fd, buf, size);
+	sceIoClose(fd);
+
+	return written;
+}
+
+static int resolve_meta(int index) {
+	data_info* t = data_info_arr + index;
+
+	if(overwrite_file(t->src, t->header, 4) == -1) {
+		print_textbuf("Failed to overwrite header.");
+		return -1;
+	}
+	
+	if(sceIoRename(t->src, t->dst)) {
+		print_textbuf("Failed to move file.");
+		print_textbuf("src: %s", t->src);
+		print_textbuf("dst: %s", t->dst);
+		return -1;
+	}
+	
+	return 0;
+}
+
 static void main_worker_impl() {
-	print_textbuf("main_worker_impl");
+	data_info_arr = calloc(0x10000, sizeof(data_info));
+
 	FileList p, q;	
 	memset(&p, 0, sizeof(FileList));
 	memset(&q, 0, sizeof(FileList));
-	//strcpy(p.path, HOME_PATH);
 	strcpy(p.path, "ux0:video/");
 
 	if (fileListGetEntries(&p, p.path)) {
@@ -138,6 +168,7 @@ static void main_worker_impl() {
 	//skip parent directory.
 	m = m->next;
 
+	print_textbuf("Searching files...");	
 	while (1) {
 		//print_textbuf("dir: %s", m->name);
 	
@@ -153,13 +184,32 @@ static void main_worker_impl() {
 			n = n->next;
 
 			while(1) {
-				char path[0x100] = {0};
+				char path[PATHBUF_LEN] = {0};
 				sprintf(path, "%s%s", q.path, n->name);
-				print_textbuf("file: %s", path);
+				//print_textbuf("file: %s", path);
 
-				if(!memcmp(n->name, "qmeta.mp4", 9)) {
-					load_meta(path);
-				}
+				if(!memcmp(n->name, "qd_", 3)) {
+					//print_textbuf("Found data file: %s", path);
+					if(process_data(path, read_data_index(n->name))) {						
+						print_textbuf("Duplicated file is found.");
+						return;
+					}
+				} else if(!memcmp(n->name, "qinst_", 6)) {
+					print_textbuf("Installing %s...", path);
+					if(installPackage(path)) {
+						print_textbuf("Failed to install package.");
+						return;
+					}
+#if REMOVE_INSTALLER_FILES
+					removePath(path, NULL);
+#endif
+				} else if(!memcmp(n->name, "qmeta.mp4", 9)) {
+					print_textbuf("Loading meta from %s...", path);
+					data_info_count = load_meta(path);
+#if REMOVE_INSTALLER_FILES
+					removePath(path, NULL);
+#endif
+				}				
 				
 				if(n == q.tail) break;
 				n = n->next;
@@ -169,53 +219,19 @@ static void main_worker_impl() {
 		if(m == p.tail) break;
 		m = m->next;
 	}
-
-#if 0
-	do {
-		FileList q;
-		fileListGetEntries(&q, h->name);
-		if (q.length == 0) continue;
-
-		FileListEntry* f = q.head;
-		if (memcmp("qmeta.mp4", f->name + f->name_length - 9, 9) == 0) {
-			load_meta(f);
-		}
-		else if (memcmp("qinst_", f->name + f->name_length - 6, 6) == 0) {
-			load_inst(f);
-		}
-		else if (memcmp("qdata_", f->name + f->name_length - 6, 6) == 0) {
-			load_data(f);
-		}
-		h = h->next;
-	} while (h != p.tail);
-
-	progress_pkg = 0;
-	progress_pkg_max = count_inst;
-	for (int u = 0; u < count_inst; ++u) {
-		progress_pkg_cur = u;
-		if (process_install_pkg(list_inst[u]) == 0) {
-			print_textbuf("Installed. %s", list_inst[u]);
-		} else {
-			print_textbuf("Failed to install package. %s", list_inst[u]);
+				
+	print_textbuf("Resolving meta...");	
+	for(int u = 0; u < data_info_count; ++u) {
+		if(resolve_meta(u)) {
+			print_textbuf("Failed to resolve %s.", data_info_arr[u].src);
 			return;
 		}
 	}
-	progress_pkg = -1;
-
-	for (int u = 0; u < count_data; ++u) {
-		if (movePath(list_data[u], dest_data[u], MOVE_REPLACE, NULL) == 0) {
-			print_textbuf("Moved. %s", list_data[u]);
-		} else {
-			print_textbuf("Failed to move file. %s", list_data[u]);
-			return;
-		}
-	}
-#endif
 
 	print_textbuf("Done.");
 }
-#endif
 
+#if 0
 static void main_worker_impl() {
 	print_textbuf("main_worker_impl");
 	print_textbuf("Installing VPK...");
@@ -225,6 +241,7 @@ static void main_worker_impl() {
 	else
 		print_textbuf("Done.");
 }
+#endif
 
 static int main_worker(SceSize args, void* p) {
 	main_worker_impl();
@@ -248,10 +265,6 @@ static void rendering_loop() {
 		sceCtrlPeekBufferPositive(0, &pad, 1);
 
 		font_draw_stringf(10, 10, RGBA8(0xFF, 0xFF, 0x00, 0xFF), "quick installer");
-
-		if (progress_pkg >= 0) {
-			font_draw_stringf(10, 30, RGBA8(0xFF, 0xFF, 0x00, 0x00), "progress_pkg: %d%, %d of %d", progress_pkg, progress_pkg_cur, progress_pkg_max);
-		}
 
 		for (int u = 0; u < TEXTBUF_ROWS; ++u) {
 			int row = (u + textbuf_index) % TEXTBUF_ROWS;
