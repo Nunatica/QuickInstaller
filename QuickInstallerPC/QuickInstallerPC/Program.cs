@@ -10,7 +10,7 @@ namespace QuickInstallerPC
 {
     static class Program
     {
-        const int FileSizeThreshold = 20 * 1024 * 1024;
+        const int FileSizeThreshold = 5 * 1024 * 1024;
 
         static byte[] header_buf = new byte[4];
         static byte[] header_dummy = new byte[] { 0, 0, 0, 0 };
@@ -35,11 +35,14 @@ namespace QuickInstallerPC
 
         static void ProcessEachFile(string dir)
         {
+            //Console.WriteLine("Working directory: " + dir.Substring(Environment.CurrentDirectory.Length));
+
             foreach (var d in Directory.GetDirectories(dir))            
                 ProcessEachFile(d);
 
             foreach (var f in Directory.GetFiles(dir))
             {
+                if (f.Contains("eboot.bin")) return;
                 var info = new FileInfo(f);
 
                 if(info.Length > FileSizeThreshold)
@@ -80,9 +83,15 @@ namespace QuickInstallerPC
             Console.WriteLine("App Id: " + app_id);
 
             Console.WriteLine("Processing...");
-            ProcessEachFile(path_work);
+            Directory.Delete(path_work + Path.DirectorySeparatorChar + "sce_sys" + Path.DirectorySeparatorChar + "manual", true);
+            foreach (var d in Directory.GetDirectories(path_work))
+            {
+                if (d.Contains("sce_module")) continue;
+                if (d.Contains("sce_sys")) continue;
+                ProcessEachFile(d);
+            }
 
-            Console.WriteLine("Compressing...");
+            Console.WriteLine("Packing...");
             ZipUtil.CreateFromDirectory(path_work, path_mp4 + Path.DirectorySeparatorChar + "qinst_" + inst_count.ToString("X2") + ".mp4");
 
             ++inst_count;
@@ -158,6 +167,10 @@ namespace QuickInstallerPC
                 ProcessVPK(t);
             foreach (var t in Directory.GetDirectories(path_vpk))
                 ProcessDirectory(t);
+            
+            Console.WriteLine("Removing temporary folder...");
+            Directory.Delete(path_work, true);
+            while (Directory.Exists(path_work)) { Thread.Sleep(100); }
 
             using (var fs = new FileStream(path_mp4 + Path.DirectorySeparatorChar + "qmeta.mp4", FileMode.CreateNew))
             {

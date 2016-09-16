@@ -10,7 +10,13 @@ namespace LocalLib
 {
     static class ZipUtil
     {
-        static readonly FastZip handle = new FastZip();
+        static readonly FastZip handle;
+
+        static ZipUtil ()
+        {
+            handle = new FastZip();
+            handle.CompressionMethod = CompressionMethod.Stored;
+        }
 
 #if false
         public static void ExtractToDirectory(string zip, string dir)
@@ -23,6 +29,7 @@ namespace LocalLib
             ZipFile.CreateFromDirectory(dir, zip, CompressionLevel.Fastest, false, Encoding.UTF8);
         }        
 #endif
+
         public static void ExtractToDirectory(string zip, string dir)
         {
             handle.ExtractZip(zip, dir, null);
@@ -30,7 +37,7 @@ namespace LocalLib
 
         public static void CreateFromDirectory(string dir, string zip)
         {
-            handle.CreateZip(zip, dir, true, null);
+            handle.CreateZip(zip, dir, true, null);            
         }
     }
 }
