@@ -76,7 +76,10 @@ namespace QuickInstallerPC
                 string path = null;
                 for (int u = 0; u < 9; ++u) {
                     path = dir + Path.DirectorySeparatorChar + "qinstph" + u;
-                    if (!File.Exists(path)) break;
+                    if (File.Exists(path))
+                        path = null;
+                    else
+                        break;
                 }
 
                 if (path == null) throw new Exception("Failed to create placeholder.");
