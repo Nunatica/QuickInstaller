@@ -31,6 +31,14 @@ do { \
 	textbuf_index = (textbuf_index + 1) % TEXTBUF_ROWS; \
 } while(0)
 
+/*
+#define print_textbuf(__format__, ...) \
+do { \
+	printf(__format__, ##__VA_ARGS__); \
+	putchar('\n'); \
+} while(0)
+*/
+
 typedef struct {
 	char src[PATHBUF_LEN];
 	char dst[PATHBUF_LEN];
@@ -58,9 +66,9 @@ static uint8_t hexchar2uint(char c) {
 
 static uint32_t read_data_index(char* filename) {
 	return
-		(hexchar2uint(filename[3]) << 24) |
-		(hexchar2uint(filename[4]) << 16) |
-		(hexchar2uint(filename[5]) << 8) |
+		(hexchar2uint(filename[3]) << 12) |
+		(hexchar2uint(filename[4]) << 8) |
+		(hexchar2uint(filename[5]) << 4) |
 		(hexchar2uint(filename[6]) << 0);
 }
 
@@ -141,8 +149,6 @@ static int resolve_meta(int index) {
 	
 	if(sceIoRename(t->src, t->dst)) {
 		print_textbuf("Failed to move file.");
-		print_textbuf("src: %s", t->src);
-		print_textbuf("dst: %s", t->dst);
 		return -1;
 	}
 	
@@ -227,7 +233,9 @@ static void main_worker_impl() {
 	print_textbuf("Resolving meta...");
 	for(int u = 0; u < data_info_cnt; ++u) {
 		if(resolve_meta(u)) {
-			print_textbuf("Failed to resolve %s.", data_info_arr[u].src);
+			print_textbuf("Failed to resolve.");
+			print_textbuf("src: %s", data_info_arr[u].src);
+			print_textbuf("dst: %s", data_info_arr[u].dst);
 			return;
 		}
 	}
