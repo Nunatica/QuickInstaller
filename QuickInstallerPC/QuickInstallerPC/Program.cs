@@ -36,16 +36,20 @@ namespace QuickInstallerPC
         static void ProcessEachFile(string dir)
         {
             //Console.WriteLine("Working directory: " + dir.Substring(Environment.CurrentDirectory.Length));
+            int remaining_entry = 0;
 
-            foreach (var d in Directory.GetDirectories(dir))            
+            foreach (var d in Directory.GetDirectories(dir))
+            {
                 ProcessEachFile(d);
+                remaining_entry += 1;
+            }
 
             foreach (var f in Directory.GetFiles(dir))
             {
                 if (f.Contains("eboot.bin")) return;
                 var info = new FileInfo(f);
 
-                if(info.Length > FileSizeThreshold)
+                if (info.Length > FileSizeThreshold)
                 {
                     using (var fs = new FileStream(f, FileMode.Open))
                     {
@@ -62,6 +66,24 @@ namespace QuickInstallerPC
                     var record = "ux0:app/" + app_id + "/" + f.Substring(path_work.Length + 1).Replace('\\', '/') + " " + ConvertBinaryToHex(header_buf);
                     meta_record.Add(record);
                     ++data_count;
+                }
+                else
+                    remaining_entry += 1;
+            }
+
+            if(remaining_entry == 0)
+            {
+                string path = null;
+                for (int u = 0; u < 9; ++u) {
+                    path = dir + Path.DirectorySeparatorChar + "qinstph" + u;
+                    if (!File.Exists(path)) break;
+                }
+
+                if (path == null) throw new Exception("Failed to create placeholder.");
+
+                using (var fs = new FileStream(path, FileMode.CreateNew))
+                {
+                    fs.Write(header_dummy, 0, 4);
                 }
             }
         }
