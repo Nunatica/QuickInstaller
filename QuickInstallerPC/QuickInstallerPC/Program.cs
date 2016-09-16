@@ -74,7 +74,7 @@ namespace QuickInstallerPC
             if(remaining_entry == 0)
             {
                 string path = null;
-                for (int u = 0; u < 9; ++u) {
+                for (int u = 0; u < 10; ++u) {
                     path = dir + Path.DirectorySeparatorChar + "qinstph" + u;
                     if (File.Exists(path))
                         path = null;
