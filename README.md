@@ -11,9 +11,9 @@ QuickInstaller is simple ps vita tool which let you install vpk via qcma.
 - Turn on VitaShell.
 - Copy and Install QuickInstaller.vpk on your ps vita.
 - Create a directory named 'vpk' in WHATEVER.
-- Put vpks into 'vpk' direcotry.
+- Put vpks into 'vpk' directory.
 - Run QuickInstallerPC.exe
-- Turn on qcma.
+- Turn on QCMA.
 - Open settings and set video folder as WHATEVER/mp4.
 - Plug cable and connect.
 - Run cma app and copy mp4 files to ps vita.
@@ -22,6 +22,7 @@ QuickInstaller is simple ps vita tool which let you install vpk via qcma.
 
 ## Known Issues ##
 - Mai dumps are not supported yet.
+- Can be slow if vpk contains a lot of small files.
 
 ## Trouble shooting ##
 - Failed to convert vpk to mp4: extract manually and put directory into 'vpk' instead of vpk file.
