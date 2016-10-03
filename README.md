@@ -1,19 +1,25 @@
 # QuickInstaller
-#### QuickInstaller is simple ps vita tool which let you install vpk via qcma.
+QuickInstaller is simple ps vita tool which let you install vpk via qcma.
 ## Requirements
-#### Windows & .NET Framework 4.5 or above. (OS X and Linux are not officialy supported yet. feel free to test via mono.)
-#### QCMA https://codestation.github.io/qcma/
+- Windows & .NET Framework 4.5 or above. (OS X and Linux are not officialy supported yet. feel free to test via mono.)
+- QCMA https://codestation.github.io/qcma/
 ## Instructions
-#### Create a directory named 'whatever'.
-#### Extract downloaded zip file into 'whatever'.
-#### Create a directory named 'vpk' in 'whatever'.
-#### Put vpks into 'vpk' or extract to each directories and put them in 'vpk'. (VPK files are not changed, extracted directories will be removed.)
-#### Run QuickInstallerPC.exe. ('work' and 'mp4' directories are automatically purged.)
-#### Copy every files in 'mp4' to VITA via qcma.
-#### Install QuickInstaller.vpk on your VITA. (you don't need to this everytime.)
-#### Run QuickInstaller.
-#### Wait for "Done." is showing up. (or can be failed. :P)
+- Create a directory named WHATEVER.
+- Extract QuickInstaller to WHATEVER.
+- Turn on VitaShell.
+- Copy and Install QuickInstaller.vpk on your ps vita.
+- Create a directory named 'vpk' in WHATEVER.
+- Put vpks into 'vpk' direcotry.
+- Run QuickInstallerPC.exe
+- Turn on qcma.
+- Open settings and set video folder as WHATEVER/mp4.
+- Plug cable and connect.
+- Run cma app and copy mp4 files to ps vita.
+- Run QuickInstaller app.
+- Wait for 'done.' is showing up. (or fail)
+## Known Issues
+- Mai dumps are not supported yet.
 ## Trouble shooting
-#### Failed to convert vpk to mp4. - just extract it and put contents into new directory (for example, extract Hastune_Miku_Project_Diva_F.vpk into vpk/hmpd/VPK_CONTENT_HERE)
-#### Failed to copy mp4 files. - remove every directories in ux0:video and try again.
-#### Failed to install package. - content might not be vpk or broken. (for example, mai dumps cannot be installed directly yet.)
+- Failed to convert vpk to mp4: extract manually and put directory into 'vpk' instead of vpk file.
+- Failed to copy mp4 files: remove every directories in ux0:video and try again.
+- Failed to install package: content might be broken.
