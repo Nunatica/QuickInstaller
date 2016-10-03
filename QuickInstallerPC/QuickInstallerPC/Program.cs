@@ -204,23 +204,27 @@ namespace QuickInstallerPC
                 ProcessVPK(t);
             foreach (var t in Directory.GetDirectories(path_vpk))
                 ProcessDirectory(t);
-            
-            Console.WriteLine("Removing temporary folder...");
-            Directory.Delete(path_work, true);
-            while (Directory.Exists(path_work)) { Thread.Sleep(100); }
 
-            using (var fs = new FileStream(path_mp4 + Path.DirectorySeparatorChar + "qmeta.mp4", FileMode.CreateNew))
+            if (Directory.Exists(path_work))
             {
-                using (var writer = new StreamWriter(fs, new UTF8Encoding(false)))
+                Console.WriteLine("Removing temporary folder...");
+                Directory.Delete(path_work, true);
+                while (Directory.Exists(path_work)) { Thread.Sleep(100); }
+
+                using (var fs = new FileStream(path_mp4 + Path.DirectorySeparatorChar + "qmeta.mp4", FileMode.CreateNew))
                 {
-                    foreach (var t in meta_record)
+                    using (var writer = new StreamWriter(fs, new UTF8Encoding(false)))
                     {
-                        writer.WriteLine(t);
+                        foreach (var t in meta_record)
+                        {
+                            writer.WriteLine(t);
+                        }
                     }
                 }
             }
 
-            Console.WriteLine("Done.");
+            Console.WriteLine("Press any key to exit.");
+            Console.ReadKey(true);
         }
     }
 }
