@@ -15,6 +15,7 @@ QuickInstaller is simple ps vita tool which let you install vpk via qcma.
 - Run QuickInstallerPC.exe
 - Turn on QCMA.
 - Open settings and set video folder as WHATEVER/mp4.
+- Refresh QCAM database.
 - Plug cable and connect.
 - Run cma app and copy mp4 files to ps vita.
 - Run QuickInstaller app.
