@@ -1,9 +1,9 @@
 # QuickInstaller
 QuickInstaller is simple ps vita tool which let you install vpk via qcma.
-## Requirements
+## Requirements ##
 - Windows & .NET Framework 4.5 or above. (OS X and Linux are not officialy supported yet. feel free to test via mono.)
 - QCMA https://codestation.github.io/qcma/
-## Instructions
+## Instructions ##
 - Create a directory named WHATEVER.
 - Extract QuickInstaller to WHATEVER.
 - Turn on VitaShell.
@@ -17,9 +17,9 @@ QuickInstaller is simple ps vita tool which let you install vpk via qcma.
 - Run cma app and copy mp4 files to ps vita.
 - Run QuickInstaller app.
 - Wait for 'done.' is showing up. (or fail)
-## Known Issues
+## Known Issues ##
 - Mai dumps are not supported yet.
-## Trouble shooting
+## Trouble shooting ##
 - Failed to convert vpk to mp4: extract manually and put directory into 'vpk' instead of vpk file.
 - Failed to copy mp4 files: remove every directories in ux0:video and try again.
 - Failed to install package: content might be broken.
