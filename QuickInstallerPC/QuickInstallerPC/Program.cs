@@ -33,6 +33,21 @@ namespace QuickInstallerPC
             return sb.ToString();
         }
 
+        static void ProcessSafeMode(string path)
+        {
+            using(var fs = new FileStream(path, FileMode.Open))
+            {
+                fs.Position = 0x80;
+
+                if (fs.ReadByte() == 1)
+                {
+                    fs.Position--;
+                    fs.WriteByte(2);
+                    Console.WriteLine("Converted as safe mode: " + path);
+                }
+            }
+        }
+
         static void ProcessEachFile(string dir)
         {
             //Console.WriteLine("Working directory: " + dir.Substring(Environment.CurrentDirectory.Length));
@@ -46,9 +61,13 @@ namespace QuickInstallerPC
 
             foreach (var f in Directory.GetFiles(dir))
             {
-                if (f.Contains("eboot.bin")) return;
-                var info = new FileInfo(f);
+                if (f.Contains("eboot.bin"))
+                {
+                    ProcessSafeMode(f);
+                    return;
+                }
 
+                var info = new FileInfo(f);
                 if (info.Length > FileSizeThreshold)
                 {
                     using (var fs = new FileStream(f, FileMode.Open))
@@ -143,13 +162,6 @@ namespace QuickInstallerPC
             if (ext != "vpk") return;
 
             Console.WriteLine("Found vpk: " + vpk.Substring(vpk.LastIndexOf(Path.DirectorySeparatorChar) + 1));
-
-            if (new FileInfo(vpk).Length < FileSizeThreshold)
-            {
-                File.Copy(vpk, path_mp4 + Path.DirectorySeparatorChar + "qinst_" + inst_count.ToString("X2") + ".mp4");
-                ++inst_count;
-                return;
-            }
 
             if (Directory.Exists(path_work))
             {
